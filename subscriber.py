@@ -46,7 +46,7 @@ class RabbitMQSubscriber:
 if __name__ == "__main__":
     # Get username and destinations from the command line
     username = input("Enter your username: ")
-    destinations = input("Enter destinations you want to listen to (comma-separated, e.g., 'rj,sp,ba'): ").split(',')
+    destinations = input("Enter destinations you want to listen to (comma-separated, e.g., 'rj,sp,ba', or '*' for everything): ").split(',')
 
     subscriber = RabbitMQSubscriber(username=username, destinations=[dest.strip() for dest in destinations])
 
