@@ -1,0 +1,3 @@
+com/cruise/payment/SubscriberPayment.class
+com/cruise/payment/config/RabbitConfig.class
+com/cruise/payment/PaymentApplication.class
