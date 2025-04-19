@@ -15,16 +15,14 @@ public class SubscriberTicket {
 
     @RabbitListener(queues = RabbitConfig.APPROVED_PAYMENT_QUEUE)
     public void listenToApprovedPayment(String message) {
-        System.out.println("Received approved payment: " + message);
+        System.out.println("\nReceived approved payment: " + message);
 
         String ticketDetails = generateTicket(message);
         publisherTicket.publishTicketGenerated(ticketDetails);
     }
 
     private String generateTicket(String message) {
-        System.out.println("Generating ticket for booking: " + message);
-
-        String ticketDetails = "Ticket for booking: " + message;
-        return ticketDetails;
+        System.out.println("\nGenerating ticket for booking: " + message);
+        return message;
     }
 }

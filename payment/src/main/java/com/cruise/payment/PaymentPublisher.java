@@ -19,7 +19,7 @@ public class PaymentPublisher {
                 RabbitConfig.APPROVED_PAYMENT, 
                 message                        
         );
-        System.out.println("Published approved payment message: " + message);
+        System.out.println("\n\nPublished approved payment message: " + message);
     }
 
     public void publishDeniedPayment(String message) {
@@ -28,6 +28,6 @@ public class PaymentPublisher {
                 RabbitConfig.DENIED_PAYMENT,   
                 message                        
         );
-        System.out.println("Published denied payment message: " + message);
+        System.out.println("\n\nPublished denied payment message: " + message);
     }
 }

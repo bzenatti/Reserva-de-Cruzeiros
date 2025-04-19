@@ -13,9 +13,10 @@ public class PromotionPublisher {
 
     private final RabbitTemplate rabbitTemplate;
 
-    private final AtomicInteger spCount = new AtomicInteger();
-    private final AtomicInteger rjCount = new AtomicInteger();
-    private final AtomicInteger baCount = new AtomicInteger();
+    private final AtomicInteger italyCount = new AtomicInteger();
+    private final AtomicInteger bahamasCount = new AtomicInteger();
+    private final AtomicInteger brazilCount = new AtomicInteger();
+    private final AtomicInteger norwayCount = new AtomicInteger();
 
     public PromotionPublisher(RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
@@ -27,24 +28,31 @@ public class PromotionPublisher {
         System.out.printf("[%s] Sent to %s: %s%n", LocalTime.now(), routingKey, promotionMessage);
     }
 
-    // sp every 5 seconds
+    // Italy promotions every 5 seconds
     @Scheduled(fixedRate = 5000)
-    public void sendToSP() {
-        String message = "Promo SP #" + spCount.incrementAndGet();
-        sendPromotion("sp", message);
+    public void sendToItaly() {
+        String message = "Promo Italy #" + italyCount.incrementAndGet();
+        sendPromotion("Italy", message);
     }
 
-    // rj every 8 seconds
+    // Bahamas promotions every 8 seconds
     @Scheduled(fixedRate = 8000)
-    public void sendToRJ() {
-        String message = "Promo RJ #" + rjCount.incrementAndGet();
-        sendPromotion("rj", message);
+    public void sendToBahamas() {
+        String message = "Promo Bahamas #" + bahamasCount.incrementAndGet();
+        sendPromotion("Bahamas", message);
     }
 
-    // ba every 10 seconds
+    // Brazil promotions every 10 seconds
     @Scheduled(fixedRate = 10000)
-    public void sendToBA() {
-        String message = "Promo BA #" + baCount.incrementAndGet();
-        sendPromotion("ba", message);
+    public void sendToBrazil() {
+        String message = "Promo Brazil #" + brazilCount.incrementAndGet();
+        sendPromotion("Brazil", message);
+    }
+
+    // Norway promotions every 12 seconds
+    @Scheduled(fixedRate = 12000)
+    public void sendToNorway() {
+        String message = "Promo Norway #" + norwayCount.incrementAndGet();
+        sendPromotion("Norway", message);
     }
 }

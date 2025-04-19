@@ -53,11 +53,7 @@ public class BookingApplication implements CommandLineRunner {
             portsByDest.put("Norway",  List.of("Oslo"));
 
             List<String> ports = portsByDest.getOrDefault(destination, List.of());
-            if (ports.isEmpty()) {
-                System.out.println("No embarkation ports configured for that destination.");
-                return;
-            }
-
+            
             System.out.println("\nAvailable embarkation ports for " + destination + ":");
             for (int i = 0; i < ports.size(); i++) {
                 System.out.printf("[%d] %s%n", i + 1, ports.get(i));

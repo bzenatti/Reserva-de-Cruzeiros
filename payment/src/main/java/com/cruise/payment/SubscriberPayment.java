@@ -19,7 +19,7 @@ public class SubscriberPayment {
     public void receiveBookingMessage(String message) {
         processPayment(message);
 
-        System.out.printf("\nDo you want to approve this payment?\n Type 1 for yes and 2 for no: ");
+        System.out.printf("\nDo you want to approve this payment?\nType 1 for yes and 2 for no: ");
         Scanner scanner = new Scanner(System.in);
         int decision = scanner.nextInt();
         scanner.close();
@@ -42,7 +42,7 @@ public class SubscriberPayment {
         int passengers = Integer.parseInt(details[6]);
         double pricePerPerson = Double.parseDouble(details[10]);
         double totalPrice = passengers * pricePerPerson;
-        System.out.printf("Payment for %s (%s cruise to %s on %s). Total amount: $%.2f%n",
+        System.out.printf("\n\nPayment for %s (%s cruise to %s on %s). Total amount: $%.2f%n",
                 username, shipName, destination, departureDate, totalPrice);
     }
 }
