@@ -1,7 +1,17 @@
 package com.cruise.booking;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
+
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
+import org.springframework.amqp.core.Message;
+
 
 import com.cruise.booking.config.RabbitConfig;
 
@@ -9,8 +19,23 @@ import com.cruise.booking.config.RabbitConfig;
 public class SubscriberBooking {
 
     @RabbitListener(queues = RabbitConfig.APPROVED_PAYMENT_QUEUE)
-    public void listenToApprovedPayment(String message) {
-        informUser(message, true);
+    public void listenToApprovedPayment(Message amqpMessage) {
+        try {
+            // Extract the payload (message) and signature 
+            String message = new String(amqpMessage.getBody());
+            String signature = (String) amqpMessage.getMessageProperties().getHeaders().get("signature");
+
+            // Verify the message
+            if (verifyMessage(message, signature)) {
+                System.out.println("\nValid approved payment received:\n" + message);
+                informUser(message, true);
+            } else {
+                System.out.println("\nInvalid signature detected. Message discarded.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error while processing approved payment: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     @RabbitListener(queues = RabbitConfig.DENIED_PAYMENT_QUEUE)
@@ -60,5 +85,19 @@ public class SubscriberBooking {
             System.out.println("\nYour payment was denied.\n");
         }
         // System.out.println(message);
+    }
+    private boolean verifyMessage(String message, String signature) throws Exception {
+        byte[] publicKeyBytes = Files.readAllBytes(Paths.get("payment-public.key"));
+        PublicKey publicKey = KeyFactory.getInstance("RSA")
+                .generatePublic(new X509EncodedKeySpec(publicKeyBytes));
+
+        Signature sig = Signature.getInstance("SHA256withRSA");
+        sig.initVerify(publicKey);
+
+        
+        sig.update(message.getBytes());
+        byte[] signedBytes = Base64.getDecoder().decode(signature);
+
+        return sig.verify(signedBytes);
     }
 }

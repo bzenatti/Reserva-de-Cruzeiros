@@ -23,13 +23,17 @@ public class SubscriberPayment {
         Scanner scanner = new Scanner(System.in);
         int decision = scanner.nextInt();
         scanner.close();
-
-        if (decision == 1) {
-            paymentPublisher.publishApprovedPayment(message);
-        } else if (decision == 2) {
-            paymentPublisher.publishDeniedPayment(message);
-        } else {
-            System.out.println("Invalid input. Payment decision not recorded.");
+        try {
+            if (decision == 1) {
+                paymentPublisher.publishApprovedPayment(message);
+            } else if (decision == 2) {
+                paymentPublisher.publishDeniedPayment(message);
+            } else {
+                System.out.println("Invalid input. Payment decision not recorded.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error processing payment decision: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -43,6 +47,6 @@ public class SubscriberPayment {
         double pricePerPerson = Double.parseDouble(details[10]);
         double totalPrice = passengers * pricePerPerson;
         System.out.printf("\n\nPayment for %s (%s cruise to %s on %s). Total amount: $%.2f%n",
-                username, shipName, destination, departureDate, totalPrice);
+                            username, shipName, destination, departureDate, totalPrice);
     }
 }
