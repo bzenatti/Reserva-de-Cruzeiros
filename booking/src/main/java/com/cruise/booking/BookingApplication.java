@@ -32,6 +32,7 @@ public class BookingApplication implements CommandLineRunner {
     public void startInterface() {
         Scanner scanner = new Scanner(System.in);
         try {
+            System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
             System.out.println("Welcome to Cruise Booking System");
 
             System.out.print("Enter your name: ");

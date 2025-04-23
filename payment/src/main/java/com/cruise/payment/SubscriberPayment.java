@@ -17,6 +17,7 @@ public class SubscriberPayment {
 
     @RabbitListener(queues = RabbitConfig.BOOKING_QUEUE)
     public void receiveBookingMessage(String message) {
+        System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
         processPayment(message);
 
         System.out.printf("\nDo you want to approve this payment?\nType 1 for yes and 2 for no: ");

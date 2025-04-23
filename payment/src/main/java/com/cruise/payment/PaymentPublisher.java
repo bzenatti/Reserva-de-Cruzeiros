@@ -50,7 +50,7 @@ public class PaymentPublisher {
                 }
         );
         System.out.println("\n\nPublished denied payment message: \n" + message);
-        System.out.println("Signature: " + signature);
+        // System.out.println("Signature: " + signature);
     }
 
     private String signMessage(String message) throws Exception {

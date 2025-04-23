@@ -29,7 +29,7 @@ public class SubscriberTicket {
             String signature = (String) amqpMessage.getMessageProperties().getHeaders().get("signature");
 
             boolean isValid = verifyMessage(message, signature);
-
+            System.out.println("\n\n\n\n\n\n\n\n\n\n");
             if (isValid) {
                 System.out.println("\nReceived valid approved payment: " + message);
 
