@@ -1,6 +1,10 @@
 package com.cruise.booking;
 
-import com.cruise.booking.itineraries.Itinerary;
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,11 +12,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
+import com.cruise.booking.itineraries.Itinerary;
 
 @SpringBootApplication
 public class BookingApplication implements CommandLineRunner {
@@ -32,19 +32,19 @@ public class BookingApplication implements CommandLineRunner {
     public void startInterface() {
         Scanner scanner = new Scanner(System.in);
         try {
-            System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-            System.out.println("Welcome to Cruise Booking System");
+            System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+            System.out.println("Welcome to Cruise Booking System\n");
 
-            System.out.print("Enter your name: ");
+            System.out.print("Enter your name:");
             String username = scanner.nextLine().trim();
 
-            System.out.print("Choose a destination (Bahamas, Italy, Brazil, Norway): ");
+            System.out.print("\nChoose a destination (Bahamas, Italy, Brazil, Norway): ");
             String destination = scanner.nextLine().trim();
 
-            System.out.print("Enter a departure year (YYYY): ");
+            System.out.print("\nEnter a departure year (YYYY): ");
             int year = Integer.parseInt(scanner.nextLine().trim());
 
-            System.out.print("Enter a departure month (1–12): ");
+            System.out.print("\nEnter a departure month (1–12): ");
             int month = Integer.parseInt(scanner.nextLine().trim());
 
             Map<String, List<String>> portsByDest = new HashMap<>();
@@ -59,7 +59,7 @@ public class BookingApplication implements CommandLineRunner {
             for (int i = 0; i < ports.size(); i++) {
                 System.out.printf("[%d] %s%n", i + 1, ports.get(i));
             }
-            System.out.print("Select port (number): ");
+            System.out.print("\nSelect port (number): ");
             int portIdx = Integer.parseInt(scanner.nextLine().trim());
             if (portIdx < 1 || portIdx > ports.size()) {
                 System.out.println("Invalid port selection.");
@@ -112,11 +112,11 @@ public class BookingApplication implements CommandLineRunner {
                 return;
             }
 
-            System.out.println("Final departure date: " + finalDeparture);
+            System.out.println("\nFinal departure date: " + finalDeparture);
 
-            System.out.print("Enter number of passengers: ");
+            System.out.print("\nEnter number of passengers: ");
             int passengers = Integer.parseInt(scanner.nextLine().trim());
-            System.out.print("Enter number of cabins: ");
+            System.out.print("\nEnter number of cabins: ");
             int cabins = Integer.parseInt(scanner.nextLine().trim());
 
             // The itinerary message is separated by commas, with fields with more than one item separated by `;`

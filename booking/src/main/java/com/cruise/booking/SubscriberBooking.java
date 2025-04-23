@@ -45,7 +45,7 @@ public class SubscriberBooking {
 
     @RabbitListener(queues = RabbitConfig.TICKET_QUEUE)
     public void listenToTicketGenerated(String message) {
-        System.out.println("\nYour ticket has been generated!\n Ticket details:\n");
+        System.out.println("\nYour ticket has been generated!\nTicket details:\n");
         displayTicketDetails(message);
     }
 

@@ -29,7 +29,7 @@ public class SubscriberTicket {
             String signature = (String) amqpMessage.getMessageProperties().getHeaders().get("signature");
 
             boolean isValid = verifyMessage(message, signature);
-            System.out.println("\n\n\n\n\n\n\n\n\n\n");
+            System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
             if (isValid) {
                 System.out.println("\nReceived valid approved payment: " + message);
 
@@ -46,7 +46,7 @@ public class SubscriberTicket {
 
     private String generateTicket(String message) {
         System.out.println("\nGenerating ticket for booking: " + message);
-        return "Ticket Details: " + message;
+        return  message;
     }
 
     private boolean verifyMessage(String message, String signature) throws Exception {
