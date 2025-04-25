@@ -51,11 +51,6 @@ A arquitetura é composta por:
 
 ## 📨 Comunicação via RabbitMQ
 
-Foi utilizado o **RabbitMQ** para:
-- Orquestrar eventos
-- Garantir comunicação assíncrona e desacoplada
-- Escalar microsserviços de forma independente
-- Melhorar performance e modularidade
 
 ## 🔐 Segurança com Assinaturas Digitais
 
@@ -73,12 +68,10 @@ O sistema inclui uma interface gráfica/interativa simples para:
 
 ## 📌 Tecnologias utilizadas
 
-- Linguagem: (ex: Python, Node.js, etc.)
+- Linguagem: Java com Spring
 - RabbitMQ
 - Protocolo AMQP
 - Criptografia com RSA (assinaturas digitais)
-- Docker (opcional, para deploy dos serviços)
-- Biblioteca de Interface: (ex: Flask, React, etc.)
 
 ---
 
