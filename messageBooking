@@ -1,3 +1,0 @@
-Fornecidos pelo cliente: destination,data,portoEmbarque
-Retornados pelo Reserva: datas,nome,portoEmbarque,portoDesembarque,visitedPlaces,numberNights,valuePerPerson
-Efetuar reserva:	nome,portoEmbarque, numeroPassageiros, numeroCabines
