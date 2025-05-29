@@ -1,4 +1,4 @@
-package com.cruise.booking.itineraries;
+package com.cruise.itineraries.mockItineraries;
 
 import java.time.LocalDate;
 import java.util.HashMap;
