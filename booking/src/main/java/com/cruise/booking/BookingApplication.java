@@ -5,20 +5,26 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Arrays;
+import java.util.Collections;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-import com.cruise.booking.itineraries.Itinerary;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.ResponseEntity;
+import com.cruise.booking.dto.ItineraryDto;
 
 @SpringBootApplication
 public class BookingApplication implements CommandLineRunner {
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
+
+    @Autowired
+    private RestTemplate restTemplate;
 
     public static void main(String[] args) {
         SpringApplication.run(BookingApplication.class, args);
@@ -53,8 +59,13 @@ public class BookingApplication implements CommandLineRunner {
             portsByDest.put("Brazil",  List.of("Rio de Janeiro", "Fortaleza", "Santos", "Manaus"));
             portsByDest.put("Norway",  List.of("Oslo"));
 
-            List<String> ports = portsByDest.getOrDefault(destination, List.of());
+            List<String> ports = portsByDest.getOrDefault(destination, Collections.emptyList());
             
+            if (ports.isEmpty()) {
+                System.out.println("Invalid destination or no ports configured for this destination.");
+                return;
+            }
+
             System.out.println("\nAvailable embarkation ports for " + destination + ":");
             for (int i = 0; i < ports.size(); i++) {
                 System.out.printf("[%d] %s%n", i + 1, ports.get(i));
@@ -68,7 +79,23 @@ public class BookingApplication implements CommandLineRunner {
             String embarkationPort = ports.get(portIdx - 1);
 
             PublisherBooking publisher = new PublisherBooking(rabbitTemplate);
-            List<Itinerary> baseMatches = Itinerary.getMatchingItineraries(destination, year, month, embarkationPort);
+            
+            String itinerariesApiUrl = "http://localhost:8081/api/itineraries"; 
+            String url = String.format("%s?destination=%s&year=%d&month=%d&embarkationPort=%s",
+                                       itinerariesApiUrl, destination, year, month, embarkationPort);
+            
+            List<ItineraryDto> baseMatches;
+            try {
+                ResponseEntity<ItineraryDto[]> response = restTemplate.getForEntity(url, ItineraryDto[].class);
+                if (response.getBody() != null) {
+                    baseMatches = Arrays.asList(response.getBody());
+                } else {
+                    baseMatches = Collections.emptyList();
+                }
+            } catch (Exception e) {
+                System.err.println("Error fetching itineraries: " + e.getMessage());
+                baseMatches = Collections.emptyList();
+            }
 
             if (baseMatches.isEmpty()) {
                 System.out.println("\nNo itineraries found for " 
@@ -79,14 +106,16 @@ public class BookingApplication implements CommandLineRunner {
 
             System.out.println("\nAvailable Itineraries:");
             for (int i = 0; i < baseMatches.size(); i++) {
-                Itinerary it = baseMatches.get(i);
+                ItineraryDto it = baseMatches.get(i);
                 System.out.printf(
                     "\n[%d] Ship: %s%n" +
                     "    Departs every month on: day %d%n" +
                     "    From: %s to %s%n" +
                     "    Visited: %s%n" +
                     "    Nights: %d%n" +
-                    "    Price per person: $%.2f%n",
+                    "    Price per person: $%.2f%n" +
+                    "    Cabins Available: %d (Max: %d)%n" +
+                    "    Passenger Spots Available: %d (Max: %d)%n",
                     i + 1,
                     it.getShipName(),
                     it.getDepartureDayOfMonth(),
@@ -94,7 +123,11 @@ public class BookingApplication implements CommandLineRunner {
                     it.getDisembarkationPort(),
                     String.join(", ", it.getVisitedPlaces()),
                     it.getNights(),
-                    it.getPricePerPerson()
+                    it.getPricePerPerson(),
+                    it.getAvailableCabins(),
+                    it.getMaxCabins(),
+                    it.getAvailablePassengers(),
+                    it.getMaxPassengers()
                 );
             }
 
@@ -104,13 +137,21 @@ public class BookingApplication implements CommandLineRunner {
                 System.out.println("Invalid selection.");
                 return;
             }
-            Itinerary selected = baseMatches.get(choice - 1);
+            ItineraryDto selected = baseMatches.get(choice - 1);
 
-            LocalDate finalDeparture = selected.getDepartureDate(year, month);
-            if (finalDeparture == null) {
-                System.out.println("Invalid departure date. Try a different month.");
+            LocalDate finalDeparture;
+            try {
+                 finalDeparture = LocalDate.of(year, month, selected.getDepartureDayOfMonth());
+            } catch (java.time.DateTimeException e) {
+                System.out.println("Invalid departure day for the selected month/year for this itinerary: " + e.getMessage());
                 return;
             }
+            
+            if (finalDeparture == null) {
+                 System.out.println("Invalid departure date. Try a different month or check itinerary details.");
+                 return;
+            }
+
 
             System.out.println("\nFinal departure date: " + finalDeparture);
 
@@ -119,7 +160,20 @@ public class BookingApplication implements CommandLineRunner {
             System.out.print("\nEnter number of cabins: ");
             int cabins = Integer.parseInt(scanner.nextLine().trim());
 
-            // The itinerary message is separated by commas, with fields with more than one item separated by `;`
+            if (cabins <= 0 || passengers <= 0) {
+                System.out.println("Number of cabins and passengers must be greater than zero.");
+                return;
+            }
+
+            if (cabins > selected.getAvailableCabins()) {
+                System.out.println("Not enough cabins available. Requested: " + cabins + ", Available: " + selected.getAvailableCabins());
+                return;
+            }
+            if (passengers > selected.getAvailablePassengers()) {
+                System.out.println("Not enough passenger capacity available. Requested: " + passengers + ", Available: " + selected.getAvailablePassengers());
+                return;
+            }
+            
             String itineraryMessage = String.join(",",
                 username,
                 destination,
@@ -136,10 +190,17 @@ public class BookingApplication implements CommandLineRunner {
 
             publisher.sendBooking(itineraryMessage);
 
-            System.out.printf("Goes to the payment tab to proceed\n");
+            System.out.printf("Reservation request sent. Please proceed to the payment step if applicable.\n");
 
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid number input. Please enter valid numbers where required.");
+        } catch (Exception e) {
+            System.err.println("An unexpected error occurred: " + e.getMessage());
+            e.printStackTrace();
         } finally {
-            scanner.close();
+            if (scanner != null) {
+                scanner.close();
+            }
         }
     }
 }
