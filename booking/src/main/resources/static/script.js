@@ -1,19 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Get references to the HTML elements
     const destinationSelect = document.getElementById('destination');
     const departureDateInput = document.getElementById('departureDate');
     const embarkationPortInput = document.getElementById('embarkationPort');
     const searchItinerariesButton = document.getElementById('searchItinerariesButton');
     const itinerariesResultDiv = document.getElementById('itinerariesResult');
-    const selectedItineraryIdInput = document.getElementById('selectedItineraryId'); // For reservation part
+    const selectedItineraryIdInput = document.getElementById('selectedItineraryId'); 
 
-    // --- Function to search for available itineraries ---
     async function searchItineraries() {
-        // Clear previous results and errors
         itinerariesResultDiv.innerHTML = '';
-        selectedItineraryIdInput.value = ''; // Clear selected itinerary for reservation
+        selectedItineraryIdInput.value = ''; 
 
-        // Get input values
         const destination = destinationSelect.value;
         const departureDateValue = departureDateInput.value; // Format: "YYYY-MM"
         const embarkationPort = embarkationPortInput.value.trim();

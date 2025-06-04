@@ -188,7 +188,7 @@ public class BookingApplication implements CommandLineRunner {
                 String.format("%.2f", selected.getPricePerPerson())
             );
 
-            publisher.sendBooking(itineraryMessage);
+            publisher.sendBookingCreated(itineraryMessage);
 
             System.out.printf("Reservation request sent. Please proceed to the payment step if applicable.\n");
 

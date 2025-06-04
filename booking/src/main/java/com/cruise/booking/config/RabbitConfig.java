@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 public class RabbitConfig {
 
     public static final String BOOKING_CREATED = "booking-created"; 
+    public static final String BOOKING_DELETED = "booking-deleted"; 
     public static final String APPROVED_PAYMENT = "approved-payment";
     public static final String DENIED_PAYMENT = "denied-payment";
     public static final String TICKET_GENERATED = "ticket-generated";
@@ -23,6 +24,11 @@ public class RabbitConfig {
     @Bean
     public DirectExchange bookingCreatedExchange() {
         return new DirectExchange(BOOKING_CREATED);
+    }
+    
+    @Bean
+    public DirectExchange bookingDeletedExchange() {
+        return new DirectExchange(BOOKING_DELETED);
     }
 
     @Bean
