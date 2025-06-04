@@ -44,10 +44,9 @@ public class RabbitConfig {
     }
 
     @Bean
-    public Binding bookingDeletedBinding(DirectExchange bookingDeletedExchange, @Qualifier("bookingCreatedQueue") Queue bookingDeletedQueue) {
+    public Binding bookingDeletedBinding(DirectExchange bookingDeletedExchange, @Qualifier("bookingDeletedQueue") Queue bookingDeletedQueue) {
         return BindingBuilder.bind(bookingDeletedQueue)
                 .to(bookingDeletedExchange)
                 .with("booking-deleted");
     }
-    
 }

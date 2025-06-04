@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const embarkationPortInput = document.getElementById('embarkationPort');
     const searchItinerariesButton = document.getElementById('searchItinerariesButton');
     const itinerariesResultDiv = document.getElementById('itinerariesResult');
+    const cancelReservationButton = document.getElementById('cancelReservationButton');
     
     const clientNameInput = document.getElementById('clientName'); 
     const selectedItineraryIdInput = document.getElementById('selectedItineraryId'); 
@@ -11,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const numCabinsInput = document.getElementById('numCabins');
     const makeReservationButton = document.getElementById('makeReservationButton');
     const reservationStatusDiv = document.getElementById('reservationStatus');
+    const reservationCodeCancelInput = document.getElementById('reservationCodeCancel');
 
     let selectedItineraryDetails = null;
     let currentSearchYear = null;
@@ -22,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (makeReservationButton) {
         makeReservationButton.addEventListener('click', handleMakeReservation);
+    }
+    if (cancelReservationButton) {
+        cancelReservationButton.addEventListener('click', handleCancelReservation);
     }
 
     async function searchItineraries() {
@@ -231,6 +236,42 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error making reservation:', error);
             const displayErrorMessage = error.message || error.toString();
             displayError(reservationStatusDiv, `Reservation failed: ${displayErrorMessage}`);
+        }
+    }
+
+    async function handleCancelReservation() {
+        const reservationId = reservationCodeCancelInput.value.trim();
+        reservationStatusDiv.innerHTML = ''; 
+
+        if (!reservationId) {
+            displayError(reservationStatusDiv, 'Please enter the reservation code to cancel.');
+            return;
+        }
+
+        console.log(`Attempting to cancel reservation with ID: ${reservationId}`);
+
+        try {
+            const response = await fetch(`/reservations/${reservationId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json' 
+                }
+            });
+
+            const responseData = await response.json(); 
+
+            if (!response.ok) {
+                const errorMessage = responseData.error || responseData.message || `HTTP error ${response.status}`;
+                throw new Error(errorMessage);
+            }
+            
+            displaySuccess(reservationStatusDiv, `${responseData.message}`);
+            reservationCodeCancelInput.value = ''; 
+
+        } catch (error) {
+            console.error('Error cancelling reservation:', error);
+            const displayErrorMessage = error.message || error.toString();
+            displayError(reservationStatusDiv, `Cancellation failed: ${displayErrorMessage}`);
         }
     }
 

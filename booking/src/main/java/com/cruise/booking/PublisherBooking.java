@@ -37,6 +37,5 @@ public class PublisherBooking {
 
         // System.out.printf("Sent booking message to %s at %s%n",
                         //   routingKey, new java.util.Date());
-
     }
 }

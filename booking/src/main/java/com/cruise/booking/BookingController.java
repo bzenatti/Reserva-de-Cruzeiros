@@ -12,7 +12,9 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -118,6 +120,30 @@ public class BookingController {
             e.printStackTrace();
             Map<String, String> errorBody = new HashMap<>();
             errorBody.put("error", "Error processing reservation: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorBody);
+        }
+    }
+    @DeleteMapping("/reservations/{reservationId}")
+    public ResponseEntity<?> cancelReservation(@PathVariable String reservationId) {
+        try {
+            if (reservationId == null || reservationId.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Reservation ID is required.");
+            }
+
+            publisherBooking.sendBookingDeleted(reservationId);
+
+            Map<String, String> responseBody = new HashMap<>();
+            responseBody.put("message", "Reservation cancellation request sent successfully for ID: " + reservationId);
+            responseBody.put("reservationId", reservationId);
+            
+            System.out.println("Cancellation request processed for Reservation ID: " + reservationId + ". Message sent via RabbitMQ.");
+
+            return ResponseEntity.ok(responseBody);
+
+        } catch (Exception e) {
+            System.err.println("Error processing cancellation request for reservation ID " + reservationId + ": " + e.getMessage());
+            Map<String, String> errorBody = new HashMap<>();
+            errorBody.put("error", "Error processing cancellation request: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorBody);
         }
     }
