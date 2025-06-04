@@ -2,7 +2,9 @@ package com.cruise.booking;
 
 import com.cruise.booking.config.RabbitConfig;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.stereotype.Component;
 
+@Component
 public class PublisherBooking {
 
     private final RabbitTemplate rabbitTemplate;
