@@ -136,7 +136,7 @@ public class BookingController {
             responseBody.put("message", "Reservation cancellation request sent successfully for ID: " + reservationId);
             responseBody.put("reservationId", reservationId);
             
-            System.out.println("Cancellation request processed for Reservation ID: " + reservationId + ". Message sent via RabbitMQ.");
+            System.out.println("Cancellation request processed for Reservation ID: " + reservationId + ".");
 
             return ResponseEntity.ok(responseBody);
 

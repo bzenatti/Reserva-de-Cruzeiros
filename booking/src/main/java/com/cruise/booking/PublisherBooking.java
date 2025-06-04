@@ -21,10 +21,6 @@ public class PublisherBooking {
             routingKey,
             itineraryMessage
         );
-
-        // System.out.printf("Sent booking message to %s at %s%n",
-                        //   routingKey, new java.util.Date());
-
     }
     public void sendBookingDeleted(String itineraryMessage) {
         String routingKey = RabbitConfig.BOOKING_DELETED;
@@ -34,8 +30,5 @@ public class PublisherBooking {
             routingKey,
             itineraryMessage
         );
-
-        // System.out.printf("Sent booking message to %s at %s%n",
-                        //   routingKey, new java.util.Date());
     }
 }
