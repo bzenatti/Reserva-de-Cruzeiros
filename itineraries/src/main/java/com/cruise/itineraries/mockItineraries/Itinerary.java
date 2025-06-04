@@ -4,8 +4,14 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import com.cruise.itineraries.Reservation;
+
+import lombok.Getter;
+
+@Getter
 public class Itinerary {
     private final String shipName;
     private final String embarkationPort;
@@ -40,18 +46,6 @@ public class Itinerary {
         this.maxPassengers = maxPassengers;
         this.availablePassengers = maxPassengers;
     }
-
-    public String getShipName()            { return shipName; }
-    public String getEmbarkationPort()     { return embarkationPort; }
-    public String getDisembarkationPort()  { return disembarkationPort; }
-    public List<String> getVisitedPlaces() { return visitedPlaces; }
-    public int getNights()                 { return nights; }
-    public double getPricePerPerson()      { return pricePerPerson; }
-    public int getDepartureDayOfMonth()    { return departureDayOfMonth; }
-    public int getMaxCabins()              { return maxCabins; }
-    public int getAvailableCabins()        { return availableCabins; }
-    public int getMaxPassengers()          { return maxPassengers; }
-    public int getAvailablePassengers()    { return availablePassengers; }
 
     public LocalDate getDepartureDate(int year, int month) {
         return LocalDate.of(year, month, departureDayOfMonth);
@@ -102,6 +96,25 @@ public class Itinerary {
     }
 
     private static final Map<String, List<Itinerary>> itinerariesMap = new HashMap<>();
+    private static final Map<String, Reservation> activeReservationsMap = new ConcurrentHashMap<>();
+
+    public static Map<String, List<Itinerary>> getItinerariesMap() {
+        return itinerariesMap;
+    }
+
+    public static void addActiveReservation(Reservation details) {
+        activeReservationsMap.put(details.getReservationId(), details);
+        System.out.println("Stored active reservation: " + details.getReservationId());
+    }
+    public static Reservation removeActiveReservation(String reservationId) {
+        Reservation removed = activeReservationsMap.remove(reservationId);
+        if (removed != null) {
+            System.out.println("Removed active reservation: " + reservationId);
+        } else {
+            System.out.println("No active reservation found to remove for ID: " + reservationId);
+        }
+        return removed;
+    }
 
     static {
         itinerariesMap.put("Bahamas", List.of(
