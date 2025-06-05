@@ -1,5 +1,6 @@
 package com.cruise.booking;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyFactory;
@@ -7,9 +8,12 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.amqp.core.Message;
 
 
@@ -17,6 +21,8 @@ import com.cruise.booking.config.RabbitConfig;
 
 @Component
 public class SubscriberBooking {
+
+    private final List<SseEmitter> sseEmitters = new CopyOnWriteArrayList<>();
 
     @RabbitListener(queues = RabbitConfig.APPROVED_PAYMENT_QUEUE)
     public void listenToApprovedPayment(Message amqpMessage) {
@@ -47,6 +53,35 @@ public class SubscriberBooking {
     public void listenToTicketGenerated(String message) {
         System.out.println("\nYour ticket has been generated!\nTicket details:\n");
         displayTicketDetails(message);
+    }
+
+    @RabbitListener(queues = RabbitConfig.PROMOTIONS_QUEUE_BOOKING)
+    public void listenToPromotions(String promotionMessage) {
+        System.out.println("Received promotion: " + promotionMessage);
+        sendSseEvent("promotion", promotionMessage);
+    }
+
+    //TODO separate the promotions SSE and the others 
+    private void sendSseEvent(String eventName, String data) {
+        for (SseEmitter emitter : sseEmitters) {
+            try {
+                emitter.send(SseEmitter.event().name(eventName).data(data));
+            } catch (IOException e) {
+                System.err.println("Error sending SSE event to an emitter: " + e.getMessage() + ". Removing emitter.");
+                sseEmitters.remove(emitter);
+            }
+        }
+    }
+
+    public void addSseEmitter(SseEmitter emitter) {
+        this.sseEmitters.add(emitter);
+        emitter.onCompletion(() -> this.sseEmitters.remove(emitter));
+        emitter.onTimeout(() -> this.sseEmitters.remove(emitter));
+        emitter.onError(e -> this.sseEmitters.remove(emitter));
+    }
+
+    public void removeSseEmitter(SseEmitter emitter) {
+        this.sseEmitters.remove(emitter);
     }
 
     private void displayTicketDetails(String message) {

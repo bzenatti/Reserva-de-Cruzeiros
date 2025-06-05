@@ -2,7 +2,6 @@ package com.cruise.marketing.config;
 
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -25,7 +24,7 @@ public class RabbitConfig {
     }
 
     @Bean
-    public Binding approvedPaymentBinding(DirectExchange promotionsExchange, @Qualifier("promotionsQueue") Queue promotionsQueue) {
+    public Binding approvedPaymentBinding(TopicExchange promotionsExchange, @Qualifier("promotionsQueue") Queue promotionsQueue) {
         return BindingBuilder.bind(promotionsQueue)
                 .to(promotionsExchange)
                 .with("promotions");

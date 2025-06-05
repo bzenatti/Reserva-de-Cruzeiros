@@ -13,10 +13,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const makeReservationButton = document.getElementById('makeReservationButton');
     const reservationStatusDiv = document.getElementById('reservationStatus');
     const reservationCodeCancelInput = document.getElementById('reservationCodeCancel');
+    const notificationsDiv = document.getElementById('notifications');
+    const registerPromotionsButton = document.getElementById('registerPromotionsButton');
+    const cancelPromotionsButton = document.getElementById('cancelPromotionsButton');
 
     let selectedItineraryDetails = null;
     let currentSearchYear = null;
     let currentSearchMonth = null;
+    let eventSource = null;
 
     if (searchItinerariesButton) {
         searchItinerariesButton.addEventListener('click', searchItineraries);
@@ -27,6 +31,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (cancelReservationButton) {
         cancelReservationButton.addEventListener('click', handleCancelReservation);
+    }
+    
+    if (registerPromotionsButton) {
+        registerPromotionsButton.addEventListener('click', connectToSse);
+    }
+
+    if (cancelPromotionsButton) {
+        cancelPromotionsButton.addEventListener('click', disconnectFromSse);
     }
 
     async function searchItineraries() {
@@ -273,6 +285,85 @@ document.addEventListener('DOMContentLoaded', () => {
             const displayErrorMessage = error.message || error.toString();
             displayError(reservationStatusDiv, `Cancellation failed: ${displayErrorMessage}`);
         }
+    }
+
+    function connectToSse() {
+        const clientName = clientNameInput.value.trim();
+        if (!clientName) {
+            addNotification("Please enter your name to connect for notifications.", "error");
+            return;
+        }
+
+        if (eventSource && eventSource.readyState !== EventSource.CLOSED) {
+            addNotification("Already connected or connecting. Disconnect first if you want to change client name.", "info");
+            return;
+        }
+
+        notificationsDiv.innerHTML = '<p>Connecting to notification service...</p>'; 
+        eventSource = new EventSource(`/subscribe-notifications/${clientName}`);
+
+        eventSource.onopen = function() {
+            addNotification(`Connection to notification service established for ${clientName}. Listening...`, "success");
+        };
+
+        eventSource.addEventListener('connection_established', function(event) {
+            addNotification(event.data, "info");
+        });
+        
+        eventSource.addEventListener('promotion', function(event) {
+            addNotification(`Promotion: ${event.data}`, "promotion");
+        });
+
+        eventSource.onerror = function(err) {
+            addNotification("Notification service error or connection closed.", "error");
+            console.error("EventSource failed:", err);
+            if (eventSource) {
+                 eventSource.close();
+            }
+        };
+    }
+
+    function disconnectFromSse() {
+        const clientName = clientNameInput.value.trim();
+        if (!clientName && eventSource) {
+             addNotification("Client name used for connection is needed to formally unsubscribe on server. Closing local connection.", "info");
+        } else if (!clientName && !eventSource) {
+            addNotification("Not connected.", "info");
+            return;
+        }
+
+
+        if (eventSource) {
+            eventSource.close();
+            addNotification("Disconnected from notification service.", "info");
+        } else {
+            addNotification("Not connected.", "info");
+        }
+
+        if (clientName) {
+             fetch(`/unsubscribe-notifications/${clientName}`, { method: 'POST' })
+            .then(response => response.text())
+            .then(message => {
+                addNotification(message, "info");
+                console.log('Unsubscribe response:', message);
+            })
+            .catch(error => {
+                console.error('Error unsubscribing:', error);
+                addNotification('Error trying to unsubscribe on server.', "error");
+            });
+        }
+    }
+    
+    function addNotification(message, type = "info") {
+        const p = document.createElement('p');
+        p.textContent = message;
+        p.className = type; 
+    
+        if (notificationsDiv.firstChild && notificationsDiv.firstChild.textContent === "SSE messages will appear here...") {
+            notificationsDiv.innerHTML = '';
+        }
+        notificationsDiv.appendChild(p);
+        notificationsDiv.scrollTop = notificationsDiv.scrollHeight;
     }
 
     function displayError(divElement, message) {

@@ -4,6 +4,7 @@ import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -16,7 +17,9 @@ public class RabbitConfig {
     public static final String APPROVED_PAYMENT = "approved-payment";
     public static final String DENIED_PAYMENT = "denied-payment";
     public static final String TICKET_GENERATED = "ticket-generated";
-    
+    public static final String PROMOTION_EXCHANGE = "promotions-exchange";
+
+    public static final String PROMOTIONS_QUEUE_BOOKING = "promotions.queue.bookingMS";
     public static final String APPROVED_PAYMENT_QUEUE = "approved-payment.queue.bookingMS";
     public static final String DENIED_PAYMENT_QUEUE = "denied-payment.queue.bookingMS";
     public static final String TICKET_QUEUE = "ticket.queue.bookingMS";
@@ -47,6 +50,11 @@ public class RabbitConfig {
     }
 
     @Bean
+    public TopicExchange promotionsExchange() {
+        return new TopicExchange(PROMOTION_EXCHANGE);
+    }
+
+    @Bean
     public Queue approvedPaymentQueue() {
         return new Queue(APPROVED_PAYMENT_QUEUE, true);
     }
@@ -59,6 +67,11 @@ public class RabbitConfig {
     @Bean
     public Queue ticketQueue() {
         return new Queue(TICKET_QUEUE, true);
+    }
+
+    @Bean
+    public Queue promotionsQueueBooking() {
+        return new Queue(PROMOTIONS_QUEUE_BOOKING, true);
     }
 
     @Bean
@@ -80,5 +93,12 @@ public class RabbitConfig {
         return BindingBuilder.bind(ticketQueue)
                 .to(ticketExchange)
                 .with("ticket.generated");
+    }
+    
+    @Bean
+    public Binding promotionsBinding(@Qualifier("promotionsExchange") TopicExchange promotionsExchange, @Qualifier("promotionsQueueBooking") Queue promotionsQueueBooking) {
+        return BindingBuilder.bind(promotionsQueueBooking)
+                .to(promotionsExchange)
+                .with("promotions.#");
     }
 }

@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.http.MediaType;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.servlet.view.RedirectView;
 
 import com.cruise.booking.dto.ItineraryDto;
@@ -33,6 +36,11 @@ public class BookingController {
 
     @Autowired
     private PublisherBooking publisherBooking;
+
+    @Autowired
+    private SubscriberBooking subscriberBooking;
+
+    private final Map<String, SseEmitter> sseEmitters = new ConcurrentHashMap<>();
 
     @GetMapping("/")
     public RedirectView home() {
@@ -145,6 +153,49 @@ public class BookingController {
             Map<String, String> errorBody = new HashMap<>();
             errorBody.put("error", "Error processing cancellation request: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorBody);
+        }
+    }
+    @GetMapping(value = "/subscribe-notifications/{clientName}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter subscribeToNotifications(@PathVariable String clientName) {
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE); 
+        
+        subscriberBooking.addSseEmitter(emitter);
+        sseEmitters.put(clientName, emitter);
+
+        emitter.onCompletion(() -> {
+            subscriberBooking.removeSseEmitter(emitter);
+            sseEmitters.remove(clientName);
+        });
+        emitter.onTimeout(() -> {
+            subscriberBooking.removeSseEmitter(emitter);
+            sseEmitters.remove(clientName);
+            emitter.complete();
+        });
+        emitter.onError(e -> {
+            subscriberBooking.removeSseEmitter(emitter);
+            sseEmitters.remove(clientName);
+        });
+        
+        try {
+            emitter.send(SseEmitter.event().name("connection_established").data("SSE connection established for " + clientName));
+        } catch (Exception e) {
+            System.err.println("Error sending initial connection event for " + clientName + ": " + e.getMessage());
+        }
+
+        System.out.println("Client " + clientName + " subscribed for SSE notifications.");
+        return emitter;
+    }
+
+    @PostMapping("/unsubscribe-notifications/{clientName}")
+    public ResponseEntity<?> unsubscribeFromNotifications(@PathVariable String clientName) {
+        SseEmitter emitter = sseEmitters.remove(clientName);
+        if (emitter != null) {
+            subscriberBooking.removeSseEmitter(emitter);
+            emitter.complete();
+            System.out.println("Client " + clientName + " unsubscribed from SSE notifications.");
+            return ResponseEntity.ok("Unsubscribed " + clientName + " successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Client " + clientName + " not found or not subscribed.");
         }
     }
 }
