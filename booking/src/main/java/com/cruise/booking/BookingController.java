@@ -131,6 +131,7 @@ public class BookingController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorBody);
         }
     }
+
     @DeleteMapping("/reservations/{reservationId}")
     public ResponseEntity<?> cancelReservation(@PathVariable String reservationId) {
         try {
@@ -155,6 +156,7 @@ public class BookingController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorBody);
         }
     }
+    
     @GetMapping(value = "/subscribe-notifications/{clientName}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter subscribeToNotifications(@PathVariable String clientName) {
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE); 

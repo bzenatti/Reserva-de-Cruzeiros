@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchItinerariesButton = document.getElementById('searchItinerariesButton');
     const itinerariesResultDiv = document.getElementById('itinerariesResult');
     const cancelReservationButton = document.getElementById('cancelReservationButton');
-    
     const clientNameInput = document.getElementById('clientName'); 
     const selectedItineraryIdInput = document.getElementById('selectedItineraryId'); 
     const numPassengersInput = document.getElementById('numPassengers');
@@ -14,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const reservationStatusDiv = document.getElementById('reservationStatus');
     const reservationCodeCancelInput = document.getElementById('reservationCodeCancel');
     const notificationsDiv = document.getElementById('notifications');
+    const promotionsDiv = document.getElementById('promotions');
     const registerPromotionsButton = document.getElementById('registerPromotionsButton');
     const cancelPromotionsButton = document.getElementById('cancelPromotionsButton');
 
@@ -34,11 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     if (registerPromotionsButton) {
-        registerPromotionsButton.addEventListener('click', connectToSse);
+        registerPromotionsButton.addEventListener('click', connectToSsePromotions);
     }
 
     if (cancelPromotionsButton) {
-        cancelPromotionsButton.addEventListener('click', disconnectFromSse);
+        cancelPromotionsButton.addEventListener('click', disconnectFromSsePromotions);
     }
 
     async function searchItineraries() {
@@ -287,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function connectToSse() {
+    function connectToSsePromotions() {
         const clientName = clientNameInput.value.trim();
         if (!clientName) {
             addNotification("Please enter your name to connect for notifications.", "error");
@@ -299,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        notificationsDiv.innerHTML = '<p>Connecting to notification service...</p>'; 
+        promotionsDiv.innerHTML = '<p>Connecting to notification service...</p>'; 
         eventSource = new EventSource(`/subscribe-notifications/${clientName}`);
 
         eventSource.onopen = function() {
@@ -323,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    function disconnectFromSse() {
+    function disconnectFromSsePromotions() {
         const clientName = clientNameInput.value.trim();
         if (!clientName && eventSource) {
              addNotification("Client name used for connection is needed to formally unsubscribe on server. Closing local connection.", "info");
@@ -364,6 +364,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         notificationsDiv.appendChild(p);
         notificationsDiv.scrollTop = notificationsDiv.scrollHeight;
+
+        if (promotionsDiv.firstChild && promotionsDiv.firstChild.textContent === "Promotions will appear here...") {
+            promotionsDiv.innerHTML = '';
+        }
+        promotionsDiv.appendChild(p);
+        promotionsDiv.scrollTop = promotionsDiv.scrollHeight;
     }
 
     function displayError(divElement, message) {

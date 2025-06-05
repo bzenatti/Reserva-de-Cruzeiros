@@ -61,7 +61,7 @@ public class SubscriberBooking {
         sendSseEvent("promotion", promotionMessage);
     }
 
-    //TODO separate the promotions SSE and the others 
+    //TODO separate the promotions SSE and the others on the back
     private void sendSseEvent(String eventName, String data) {
         for (SseEmitter emitter : sseEmitters) {
             try {

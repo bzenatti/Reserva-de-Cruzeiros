@@ -128,6 +128,31 @@ button:active {
     color: #555;
     font-style: italic;
 }
+#promotions {
+    margin-top: 25px;
+    padding: 18px;
+    border: 1px solid #cce5ff; 
+    background-color: #e7f3ff; 
+    border-radius: 5px;
+    min-height: 60px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+#promotions div {
+    padding: 8px 0;
+    border-bottom: 1px dashed #b3d7ff; 
+    font-size: 0.95em;
+}
+
+#promotions div:last-child {
+    border-bottom: none;
+}
+
+#promotions p:first-child { 
+    color: #555;
+    font-style: italic;
+}
 
 
 .error {
