@@ -74,6 +74,34 @@ public class BookingController {
 
         return baseMatches;
     }
+    @GetMapping("/payment-link")
+    public ResponseEntity<?> getPaymentLink(@RequestBody ReservationDto reservationRequest)
+    {
+        
+        String paymentApiUrl = "http://localhost:8081/api/payment"; 
+        String url = String.format("%s?destination=%s&year=%d&month=%d&embarkationPort=%s",
+                                       paymentApiUrl, reservationRequest);
+        
+        try {
+            if (reservationRequest == null || reservationRequest.getClientName() == null || reservationRequest.getClientName().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Client name is required.");
+            }
+            if (reservationRequest.getShipName() == null || reservationRequest.getShipName().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Ship name (selected itinerary) is required.");
+            }
+            if (reservationRequest.getNumPassengers() <= 0 || reservationRequest.getNumCabins() <= 0) {
+                return ResponseEntity.badRequest().body("Number of passengers and cabins must be greater than zero.");
+            }
+        }
+        catch (Exception e) {
+            System.err.println("Error processing payment request: " + e.getMessage());
+            e.printStackTrace();
+            Map<String, String> errorBody = new HashMap<>();
+            errorBody.put("error", "Error processing reservation: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorBody);
+        }
+        return "";
+    }
 
     @PostMapping("/make-reservation")
     public ResponseEntity<?> makeReservation(@RequestBody ReservationDto reservationRequest) { 
