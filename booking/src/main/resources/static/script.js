@@ -5,8 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchItinerariesButton = document.getElementById('searchItinerariesButton');
     const itinerariesResultDiv = document.getElementById('itinerariesResult');
     const cancelReservationButton = document.getElementById('cancelReservationButton');
-    const clientNameInput = document.getElementById('clientName'); 
-    const selectedItineraryIdInput = document.getElementById('selectedItineraryId'); 
+    const clientNameInput = document.getElementById('clientName');
+    const selectedItineraryIdInput = document.getElementById('selectedItineraryId');
     const numPassengersInput = document.getElementById('numPassengers');
     const numCabinsInput = document.getElementById('numCabins');
     const makeReservationButton = document.getElementById('makeReservationButton');
@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const promotionsDiv = document.getElementById('promotions');
     const registerPromotionsButton = document.getElementById('registerPromotionsButton');
     const cancelPromotionsButton = document.getElementById('cancelPromotionsButton');
+    const connectSseButton = document.getElementById('connectSseButton');
 
     let selectedItineraryDetails = null;
     let currentSearchYear = null;
@@ -32,24 +33,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cancelReservationButton) {
         cancelReservationButton.addEventListener('click', handleCancelReservation);
     }
-    
+
+    if (connectSseButton) {
+        connectSseButton.addEventListener('click', connectToSse);
+    }
+
     if (registerPromotionsButton) {
-        registerPromotionsButton.addEventListener('click', connectToSsePromotions);
+        registerPromotionsButton.addEventListener('click', connectToSse);
     }
 
     if (cancelPromotionsButton) {
-        cancelPromotionsButton.addEventListener('click', disconnectFromSsePromotions);
+        cancelPromotionsButton.addEventListener('click', disconnectFromSse);
     }
 
     async function searchItineraries() {
-        console.log("searchItineraries called. Resetting selectedItineraryDetails.");
-        itinerariesResultDiv.innerHTML = ''; 
-        selectedItineraryIdInput.value = ''; 
-        selectedItineraryDetails = null; 
-        reservationStatusDiv.innerHTML = ''; 
+        itinerariesResultDiv.innerHTML = '';
+        selectedItineraryIdInput.value = '';
+        selectedItineraryDetails = null;
+        reservationStatusDiv.innerHTML = '';
 
         const destination = destinationSelect.value;
-        const departureDateValue = departureDateInput.value; 
+        const departureDateValue = departureDateInput.value;
         const embarkationPort = embarkationPortInput.value.trim();
 
         if (!destination) {
@@ -66,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const [yearStr, monthStr] = departureDateValue.split('-');
-        currentSearchYear = parseInt(yearStr, 10); 
+        currentSearchYear = parseInt(yearStr, 10);
         currentSearchMonth = parseInt(monthStr, 10);
 
         const headers = new Headers();
@@ -142,38 +146,29 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.select-itinerary-button').forEach(button => {
             button.addEventListener('click', (event) => {
                 const clickedButton = event.target;
-                const itineraryId = clickedButton.getAttribute('data-itinerary-id'); 
-                const itineraryDataString = clickedButton.getAttribute('data-itinerary-details'); 
-                
-                console.log("Select button clicked. Display ID:", itineraryId);
-                console.log("Raw data-itinerary-details string:", itineraryDataString);
+                const itineraryId = clickedButton.getAttribute('data-itinerary-id');
+                const itineraryDataString = clickedButton.getAttribute('data-itinerary-details');
 
-                selectedItineraryIdInput.value = itineraryId; 
-                
+                selectedItineraryIdInput.value = itineraryId;
+
                 try {
-                    selectedItineraryDetails = JSON.parse(itineraryDataString); 
-                    console.log('Itinerary selected and parsed successfully:', selectedItineraryDetails); 
-                    
+                    selectedItineraryDetails = JSON.parse(itineraryDataString);
                     if (selectedItineraryDetails && selectedItineraryDetails.shipName) {
                         reservationStatusDiv.innerHTML = `<p class="success">Selected Itinerary: ${selectedItineraryDetails.shipName} (Ref: ${itineraryId.substring(0, 15)}...). Please fill passenger/cabin details and click 'Make Reservation'.</p>`;
                     } else {
-                        console.error("Parsed itinerary details object is missing shipName or is null/undefined.", selectedItineraryDetails);
                         displayError(reservationStatusDiv, "Error selecting itinerary: details incomplete after parsing.");
-                        selectedItineraryDetails = null; 
+                        selectedItineraryDetails = null;
                     }
                 } catch (e) {
-                    console.error("Error parsing itinerary details JSON:", e);
-                    console.error("Problematic JSON string was:", itineraryDataString);
                     displayError(reservationStatusDiv, "Error selecting itinerary: could not parse details. Check console for problematic JSON.");
-                    selectedItineraryDetails = null; 
+                    selectedItineraryDetails = null;
                 }
             });
         });
     }
 
     async function handleMakeReservation() {
-        console.log('handleMakeReservation called. Current state of selectedItineraryDetails:', selectedItineraryDetails);
-        reservationStatusDiv.innerHTML = ''; 
+        reservationStatusDiv.innerHTML = '';
 
         const clientName = clientNameInput.value.trim();
         const numPassengers = parseInt(numPassengersInput.value, 10);
@@ -184,7 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         if (!selectedItineraryDetails || typeof selectedItineraryDetails !== 'object' || Object.keys(selectedItineraryDetails).length === 0) {
-            console.error('Validation failed in handleMakeReservation: selectedItineraryDetails is not a valid object.', selectedItineraryDetails);
             displayError(reservationStatusDiv, 'Please select an itinerary first. (Details not found)');
             return;
         }
@@ -211,12 +205,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const reservationData = {
             clientName: clientName,
-            destination: destinationSelect.value, 
+            destination: destinationSelect.value,
             shipName: selectedItineraryDetails.shipName,
             embarkationPort: selectedItineraryDetails.embarkationPort,
             disembarkationPort: selectedItineraryDetails.disembarkationPort,
-            year: currentSearchYear, 
-            month: currentSearchMonth, 
+            year: currentSearchYear,
+            month: currentSearchMonth,
             departureDayOfMonth: selectedItineraryDetails.departureDayOfMonth,
             numPassengers: numPassengers,
             numCabins: numCabins,
@@ -224,7 +218,6 @@ document.addEventListener('DOMContentLoaded', () => {
             nights: selectedItineraryDetails.nights,
             pricePerPerson: selectedItineraryDetails.pricePerPerson
         };
-        console.log("Submitting reservationData:", reservationData);
 
         try {
             const response = await fetch('/make-reservation', {
@@ -235,17 +228,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(reservationData)
             });
 
-            const responseData = await response.json(); 
+            const responseData = await response.json();
 
             if (!response.ok) {
                 const errorMessage = responseData.error || responseData.message || `HTTP error ${response.status}`;
                 throw new Error(errorMessage);
             }
-            
+
             displaySuccess(reservationStatusDiv, `${responseData.message} Your Reservation ID is: <strong>${responseData.reservationId}</strong>`);
-            
+
         } catch (error) {
-            console.error('Error making reservation:', error);
             const displayErrorMessage = error.message || error.toString();
             displayError(reservationStatusDiv, `Reservation failed: ${displayErrorMessage}`);
         }
@@ -253,41 +245,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleCancelReservation() {
         const reservationId = reservationCodeCancelInput.value.trim();
-        reservationStatusDiv.innerHTML = ''; 
+        reservationStatusDiv.innerHTML = '';
 
         if (!reservationId) {
             displayError(reservationStatusDiv, 'Please enter the reservation code to cancel.');
             return;
         }
 
-        console.log(`Attempting to cancel reservation with ID: ${reservationId}`);
-
         try {
             const response = await fetch(`/reservations/${reservationId}`, {
                 method: 'DELETE',
                 headers: {
-                    'Content-Type': 'application/json' 
+                    'Content-Type': 'application/json'
                 }
             });
 
-            const responseData = await response.json(); 
+            const responseData = await response.json();
 
             if (!response.ok) {
                 const errorMessage = responseData.error || responseData.message || `HTTP error ${response.status}`;
                 throw new Error(errorMessage);
             }
-            
+
             displaySuccess(reservationStatusDiv, `${responseData.message}`);
-            reservationCodeCancelInput.value = ''; 
+            reservationCodeCancelInput.value = '';
 
         } catch (error) {
-            console.error('Error cancelling reservation:', error);
             const displayErrorMessage = error.message || error.toString();
             displayError(reservationStatusDiv, `Cancellation failed: ${displayErrorMessage}`);
         }
     }
 
-    function connectToSsePromotions() {
+    function connectToSse() {
         const clientName = clientNameInput.value.trim();
         if (!clientName) {
             addNotification("Please enter your name to connect for notifications.", "error");
@@ -295,35 +284,50 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (eventSource && eventSource.readyState !== EventSource.CLOSED) {
-            addNotification("Already connected or connecting. Disconnect first if you want to change client name.", "info");
+            addNotification("Already connected. Disconnect first to change client name.", "info");
             return;
         }
 
-        promotionsDiv.innerHTML = '<p>Connecting to notification service...</p>'; 
+        addNotification('Connecting to notification service...', 'info');
         eventSource = new EventSource(`/subscribe-notifications/${clientName}`);
 
         eventSource.onopen = function() {
-            addNotification(`Connection to notification service established for ${clientName}. Listening...`, "success");
+            addNotification(`Connection established for ${clientName}. Listening...`, "success");
         };
 
         eventSource.addEventListener('connection_established', function(event) {
             addNotification(event.data, "info");
         });
-        
+
         eventSource.addEventListener('promotion', function(event) {
-            addNotification(`Promotion: ${event.data}`, "promotion");
+            addPromotionNotification(event.data);
+        });
+
+        eventSource.addEventListener('payment_approved', function(event) {
+            addNotification(`Payment Approved: ${event.data}`, 'success');
+        });
+
+        eventSource.addEventListener('payment_denied', function(event) {
+            addNotification(`Payment Denied: ${event.data}`, 'error');
+        });
+
+        eventSource.addEventListener('ticket_generated', function(event) {
+            addNotification(`Ticket Generated: ${event.data}`, 'info');
+        });
+
+        eventSource.addEventListener('payment_error', function(event) {
+            addNotification(`Payment Error: ${event.data}`, 'error');
         });
 
         eventSource.onerror = function(err) {
             addNotification("Notification service error or connection closed.", "error");
-            console.error("EventSource failed:", err);
             if (eventSource) {
                  eventSource.close();
             }
         };
     }
 
-    function disconnectFromSsePromotions() {
+    function disconnectFromSse() {
         const clientName = clientNameInput.value.trim();
         if (!clientName && eventSource) {
              addNotification("Client name used for connection is needed to formally unsubscribe on server. Closing local connection.", "info");
@@ -345,27 +349,31 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(response => response.text())
             .then(message => {
                 addNotification(message, "info");
-                console.log('Unsubscribe response:', message);
             })
             .catch(error => {
-                console.error('Error unsubscribing:', error);
                 addNotification('Error trying to unsubscribe on server.', "error");
             });
         }
     }
-    
+
     function addNotification(message, type = "info") {
         const p = document.createElement('p');
         p.textContent = message;
-        p.className = type; 
-    
-        if (notificationsDiv.firstChild && notificationsDiv.firstChild.textContent === "SSE messages will appear here...") {
+        p.className = type;
+
+        if (notificationsDiv.firstChild && notificationsDiv.firstChild.textContent.includes("will appear here...")) {
             notificationsDiv.innerHTML = '';
         }
         notificationsDiv.appendChild(p);
         notificationsDiv.scrollTop = notificationsDiv.scrollHeight;
+    }
 
-        if (promotionsDiv.firstChild && promotionsDiv.firstChild.textContent === "Promotions will appear here...") {
+    function addPromotionNotification(message) {
+        const p = document.createElement('p');
+        p.textContent = message;
+        p.className = 'promotion';
+
+        if (promotionsDiv.firstChild && promotionsDiv.firstChild.textContent.includes("will appear here...")) {
             promotionsDiv.innerHTML = '';
         }
         promotionsDiv.appendChild(p);
@@ -375,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function displayError(divElement, message) {
         divElement.innerHTML = `<p class="error">${message}</p>`;
     }
-    
+
     function displaySuccess(divElement, message) {
         divElement.innerHTML = `<p class="success">${message}</p>`;
     }

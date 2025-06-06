@@ -27,6 +27,9 @@ import org.springframework.web.servlet.view.RedirectView;
 
 import com.cruise.booking.dto.ItineraryDto;
 import com.cruise.booking.dto.ReservationDto;
+
+import jakarta.annotation.PreDestroy;
+
 import com.cruise.booking.dto.PaymentLinkDto;
 
 @RestController
@@ -218,5 +221,12 @@ public class BookingController {
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Client " + clientName + " not found or not subscribed.");
         }
+    }
+    
+    @PreDestroy
+    public void shutdown() {
+        System.out.println("Shutting down SSE emitters...");
+        sseEmitters.values().forEach(SseEmitter::complete);
+        System.out.println("SSE emitters completed.");
     }
 }
