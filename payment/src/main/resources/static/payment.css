@@ -1,0 +1,50 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f4f4f4;
+}
+.container {
+    text-align: center;
+    padding: 40px;
+    border-radius: 8px;
+    background-color: white;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+h1 {
+    color: #333;
+}
+.details {
+    margin: 20px 0;
+    color: #555;
+}
+.buttons button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin: 0 10px;
+    transition: background-color 0.3s;
+}
+#approveButton {
+    background-color: #28a745;
+    color: white;
+}
+#approveButton:hover {
+    background-color: #218838;
+}
+#denyButton {
+    background-color: #dc3545;
+    color: white;
+}
+#denyButton:hover {
+    background-color: #c82333;
+}
+#statusMessage {
+    margin-top: 20px;
+    font-size: 1.1em;
+    font-weight: bold;
+}

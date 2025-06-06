@@ -27,6 +27,7 @@ import org.springframework.web.servlet.view.RedirectView;
 
 import com.cruise.booking.dto.ItineraryDto;
 import com.cruise.booking.dto.ReservationDto;
+import com.cruise.booking.dto.PaymentLinkDto;
 
 @RestController
 public class BookingController {
@@ -74,37 +75,9 @@ public class BookingController {
 
         return baseMatches;
     }
-    @GetMapping("/payment-link")
-    public ResponseEntity<?> getPaymentLink(@RequestBody ReservationDto reservationRequest)
-    {
-        
-        String paymentApiUrl = "http://localhost:8081/api/payment"; 
-        String url = String.format("%s?destination=%s&year=%d&month=%d&embarkationPort=%s",
-                                       paymentApiUrl, reservationRequest);
-        
-        try {
-            if (reservationRequest == null || reservationRequest.getClientName() == null || reservationRequest.getClientName().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("Client name is required.");
-            }
-            if (reservationRequest.getShipName() == null || reservationRequest.getShipName().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("Ship name (selected itinerary) is required.");
-            }
-            if (reservationRequest.getNumPassengers() <= 0 || reservationRequest.getNumCabins() <= 0) {
-                return ResponseEntity.badRequest().body("Number of passengers and cabins must be greater than zero.");
-            }
-        }
-        catch (Exception e) {
-            System.err.println("Error processing payment request: " + e.getMessage());
-            e.printStackTrace();
-            Map<String, String> errorBody = new HashMap<>();
-            errorBody.put("error", "Error processing reservation: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorBody);
-        }
-        return "";
-    }
 
     @PostMapping("/make-reservation")
-    public ResponseEntity<?> makeReservation(@RequestBody ReservationDto reservationRequest) { 
+    public ResponseEntity<?> makeReservation(@RequestBody ReservationDto reservationRequest) {
         try {
             if (reservationRequest == null || reservationRequest.getClientName() == null || reservationRequest.getClientName().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body("Client name is required.");
@@ -118,16 +91,17 @@ public class BookingController {
 
             LocalDate finalDepartureDate;
             try {
-                 finalDepartureDate = LocalDate.of(reservationRequest.getYear(), reservationRequest.getMonth(), reservationRequest.getDepartureDayOfMonth());
+                finalDepartureDate = LocalDate.of(reservationRequest.getYear(), reservationRequest.getMonth(), reservationRequest.getDepartureDayOfMonth());
             } catch (java.time.DateTimeException e) {
                 System.err.println("Invalid departure date components: " + reservationRequest.getYear() + "-" + reservationRequest.getMonth() + "-" + reservationRequest.getDepartureDayOfMonth() + ". Error: " + e.getMessage());
                 return ResponseEntity.badRequest().body("Invalid departure date: " + e.getMessage());
             }
 
             String reservationId = UUID.randomUUID().toString();
+            reservationRequest.setReservationId(reservationId);
 
             String itineraryMessage = String.join(",",
-                reservationId, 
+                reservationId,
                 reservationRequest.getClientName(),
                 reservationRequest.getDestination(),
                 reservationRequest.getShipName(),
@@ -142,15 +116,32 @@ public class BookingController {
             );
 
             publisherBooking.sendBookingCreated(itineraryMessage);
-
             System.out.println("Reservation request successfully processed. Reservation ID: " + reservationId + ". Message sent for: " + reservationRequest.getClientName() + " on ship " + reservationRequest.getShipName());
-            
-            Map<String, String> responseBody = new HashMap<>();
-            responseBody.put("message", "Reservation request sent successfully. You will be notified about the status.");
-            responseBody.put("reservationId", reservationId);
-            
-            return ResponseEntity.ok(responseBody);
 
+            String paymentLink = "";
+            try {
+                String paymentServiceUrl = "http://localhost:8083/api/payment/request-payment";
+
+                ResponseEntity<PaymentLinkDto> paymentResponse = restTemplate.postForEntity(
+                    paymentServiceUrl,
+                    reservationRequest,
+                    PaymentLinkDto.class
+                );
+
+                if (paymentResponse.getStatusCode() == HttpStatus.OK && paymentResponse.getBody() != null) {
+                    paymentLink = paymentResponse.getBody().getPaymentLink();
+                    System.out.println("Successfully retrieved payment link: " + paymentLink);
+                }
+            } catch (Exception e) {
+                System.err.println("CRITICAL: Could not retrieve payment link. Error: " + e.getMessage());
+            }
+
+            Map<String, String> responseBody = new HashMap<>();
+            responseBody.put("message", "Reservation request sent. Please use the link to complete payment.");
+            responseBody.put("reservationId", reservationId);
+            responseBody.put("paymentLink", paymentLink);
+
+            return ResponseEntity.ok(responseBody);
         } catch (Exception e) {
             System.err.println("Error processing reservation request: " + e.getMessage());
             e.printStackTrace();

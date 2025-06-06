@@ -1,4 +1,4 @@
-package com.cruise.booking.dto;
+package com.cruise.payment.dto;
 
 import lombok.Getter;
 import lombok.Setter;
