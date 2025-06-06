@@ -21,29 +21,54 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedItineraryDetails = null;
     let currentSearchYear = null;
     let currentSearchMonth = null;
+
     let eventSource = null;
+    let isSubscribedToNotifications = false;
+    let isSubscribedToPromotions = false;
+
+    const embarkationPortsByDestination = {
+        'Bahamas': ['Miami', 'Orlando'],
+        'Italy': ['Rome', 'Naples'],
+        'Brazil': ['Rio de Janeiro', 'Fortaleza', 'Santos', 'Manaus'],
+        'Norway': ['Oslo']
+    };
+
+    destinationSelect.addEventListener('change', () => {
+        const selectedDestination = destinationSelect.value;
+        embarkationPortInput.innerHTML = '';
+        if (selectedDestination) {
+            embarkationPortInput.disabled = false;
+            const ports = embarkationPortsByDestination[selectedDestination] || [];
+            let defaultOption = new Option("Select an Embarkation Port", "");
+            embarkationPortInput.add(defaultOption);
+            ports.forEach(port => {
+                let option = new Option(port, port);
+                embarkationPortInput.add(option);
+            });
+        } else {
+            let defaultOption = new Option("Select a Destination First", "");
+            embarkationPortInput.add(defaultOption);
+            embarkationPortInput.disabled = true;
+        }
+    });
 
     if (searchItinerariesButton) {
         searchItinerariesButton.addEventListener('click', searchItineraries);
     }
-
     if (makeReservationButton) {
         makeReservationButton.addEventListener('click', handleMakeReservation);
     }
     if (cancelReservationButton) {
         cancelReservationButton.addEventListener('click', handleCancelReservation);
     }
-
     if (connectSseButton) {
-        connectSseButton.addEventListener('click', connectToSse);
+        connectSseButton.addEventListener('click', signIn);
     }
-
     if (registerPromotionsButton) {
-        registerPromotionsButton.addEventListener('click', connectToSse);
+        registerPromotionsButton.addEventListener('click', subscribeToPromotions);
     }
-
     if (cancelPromotionsButton) {
-        cancelPromotionsButton.addEventListener('click', disconnectFromSse);
+        cancelPromotionsButton.addEventListener('click', unsubscribeFromPromotions);
     }
 
     async function searchItineraries() {
@@ -235,7 +260,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errorMessage);
             }
 
-            displaySuccess(reservationStatusDiv, `${responseData.message} Your Reservation ID is: <strong>${responseData.reservationId}</strong>`);
+            let successMessage = `
+                ${responseData.message}<br>
+                Your Reservation ID is: <strong>${responseData.reservationId}</strong>
+            `;
+            if (responseData.paymentLink) {
+                successMessage += `
+                    <br>Payment Link: <a href="${responseData.paymentLink}" target="_blank" rel="noopener noreferrer">${responseData.paymentLink}</a>
+                `;
+            }
+            displaySuccess(reservationStatusDiv, successMessage);
 
         } catch (error) {
             const displayErrorMessage = error.message || error.toString();
@@ -276,15 +310,73 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function connectToSse() {
+    function signIn() {
         const clientName = clientNameInput.value.trim();
         if (!clientName) {
-            addNotification("Please enter your name to connect for notifications.", "error");
+            addNotification("Please enter your name to sign in.", "error");
             return;
         }
+        if (isSubscribedToNotifications) {
+            addNotification("You are already signed in.", "info");
+            return;
+        }
+        isSubscribedToNotifications = true;
+        addNotification(`Signed in as ${clientName}. General notifications are now active.`, "success");
+        initializeSse();
+    }
 
+    function subscribeToPromotions() {
+        const clientName = clientNameInput.value.trim();
+        if (!clientName) {
+            addNotification("Please sign in with your name before registering for promotions.", "error");
+            return;
+        }
+        if (isSubscribedToPromotions) {
+            addNotification("You are already registered for promotions.", "info");
+            return;
+        }
+        isSubscribedToPromotions = true;
+        addNotification("You are now registered for promotional messages.", "success");
+        initializeSse();
+    }
+
+    function unsubscribeFromPromotions() {
+        if (!isSubscribedToPromotions) {
+             addNotification("You are not currently registered for promotions.", "info");
+             return;
+        }
+        isSubscribedToPromotions = false;
+        addNotification("You will no longer see new promotional messages.", "info");
+    }
+
+    function formatReservationDetails(rawData) {
+        const parts = rawData.split('Details: ');
+        const csvData = parts[1];
+
+        if (!csvData) {
+            return rawData;
+        }
+
+        const fields = csvData.split(',');
+        const reservationId = fields[0];
+        const clientName = fields[1];
+        const shipName = fields[3];
+        const departureDate = fields[6];
+
+        return `
+            <strong>for ${clientName}</strong><br>
+            <strong>Ship:</strong> ${shipName}<br>
+            <strong>Date:</strong> ${departureDate}<br>
+            <strong>ID:</strong> <small>${reservationId}</small>
+        `;
+    }
+
+    function initializeSse() {
         if (eventSource && eventSource.readyState !== EventSource.CLOSED) {
-            addNotification("Already connected. Disconnect first to change client name.", "info");
+            return;
+        }
+        const clientName = clientNameInput.value.trim();
+        if (!clientName) {
             return;
         }
 
@@ -292,76 +384,63 @@ document.addEventListener('DOMContentLoaded', () => {
         eventSource = new EventSource(`/subscribe-notifications/${clientName}`);
 
         eventSource.onopen = function() {
-            addNotification(`Connection established for ${clientName}. Listening...`, "success");
+            addNotification(`Connection to service established for ${clientName}.`, "success");
         };
 
         eventSource.addEventListener('connection_established', function(event) {
-            addNotification(event.data, "info");
+            if (isSubscribedToNotifications) {
+                addNotification(event.data, "info");
+            }
         });
 
         eventSource.addEventListener('promotion', function(event) {
-            addPromotionNotification(event.data);
+            if (isSubscribedToPromotions) {
+                addPromotionNotification(event.data);
+            }
         });
 
         eventSource.addEventListener('payment_approved', function(event) {
-            addNotification(`Payment Approved: ${event.data}`, 'success');
+            if (isSubscribedToNotifications) {
+                addNotification("Payment Approved" + formatReservationDetails(event.data), 'success');
+            }
         });
 
         eventSource.addEventListener('payment_denied', function(event) {
-            addNotification(`Payment Denied: ${event.data}`, 'error');
+            if (isSubscribedToNotifications) {
+                addNotification("Payment Denied" + formatReservationDetails(event.data), 'error');
+            }
         });
 
         eventSource.addEventListener('ticket_generated', function(event) {
-            addNotification(`Ticket Generated: ${event.data}`, 'info');
+            if (isSubscribedToNotifications) {
+                addNotification("Ticket Generated" +formatReservationDetails(event.data), 'success');
+            }
         });
 
         eventSource.addEventListener('payment_error', function(event) {
-            addNotification(`Payment Error: ${event.data}`, 'error');
+            if (isSubscribedToNotifications) {
+                addNotification(`Payment Error: ${event.data}`, 'error');
+            }
         });
 
         eventSource.onerror = function(err) {
-            addNotification("Notification service error or connection closed.", "error");
+            if (isSubscribedToNotifications || isSubscribedToPromotions) {
+                 addNotification("Notification service error or connection closed.", "error");
+            }
             if (eventSource) {
                  eventSource.close();
+                 eventSource = null;
             }
         };
     }
 
-    function disconnectFromSse() {
-        const clientName = clientNameInput.value.trim();
-        if (!clientName && eventSource) {
-             addNotification("Client name used for connection is needed to formally unsubscribe on server. Closing local connection.", "info");
-        } else if (!clientName && !eventSource) {
-            addNotification("Not connected.", "info");
-            return;
-        }
-
-
-        if (eventSource) {
-            eventSource.close();
-            addNotification("Disconnected from notification service.", "info");
-        } else {
-            addNotification("Not connected.", "info");
-        }
-
-        if (clientName) {
-             fetch(`/unsubscribe-notifications/${clientName}`, { method: 'POST' })
-            .then(response => response.text())
-            .then(message => {
-                addNotification(message, "info");
-            })
-            .catch(error => {
-                addNotification('Error trying to unsubscribe on server.', "error");
-            });
-        }
-    }
-
     function addNotification(message, type = "info") {
         const p = document.createElement('p');
-        p.textContent = message;
         p.className = type;
+        p.innerHTML = message;
 
-        if (notificationsDiv.firstChild && notificationsDiv.firstChild.textContent.includes("will appear here...")) {
+        const firstChild = notificationsDiv.querySelector('p');
+        if (firstChild && firstChild.textContent.includes("will appear here...")) {
             notificationsDiv.innerHTML = '';
         }
         notificationsDiv.appendChild(p);
@@ -373,7 +452,8 @@ document.addEventListener('DOMContentLoaded', () => {
         p.textContent = message;
         p.className = 'promotion';
 
-        if (promotionsDiv.firstChild && promotionsDiv.firstChild.textContent.includes("will appear here...")) {
+        const firstChild = promotionsDiv.querySelector('p');
+        if (firstChild && firstChild.textContent.includes("will appear here...")) {
             promotionsDiv.innerHTML = '';
         }
         promotionsDiv.appendChild(p);
