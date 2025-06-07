@@ -15,7 +15,7 @@ A arquitetura é composta por:
 
 ### 🛳️ MS Reserva (porta 8080)
 
-É o *backend-for-frontend* (BFF) da aplicação, responsável por orquestrar as operações e servir a interface do usuário.
+Responsável por orquestrar as operações e servir a interface do usuário.
 
 -   **Interface Web**: Fornece uma página HTML interativa para os usuários.
 -   **Consulta de Itinerários**: Busca os cruzeiros disponíveis fazendo uma chamada REST ao MS Itinerários.

@@ -387,12 +387,6 @@ document.addEventListener('DOMContentLoaded', () => {
             addNotification(`Connection to service established for ${clientName}.`, "success");
         };
 
-        eventSource.addEventListener('connection_established', function(event) {
-            if (isSubscribedToNotifications) {
-                addNotification(event.data, "info");
-            }
-        });
-
         eventSource.addEventListener('promotion', function(event) {
             if (isSubscribedToPromotions) {
                 addPromotionNotification(event.data);

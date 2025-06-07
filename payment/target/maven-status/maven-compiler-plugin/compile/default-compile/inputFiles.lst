@@ -1,7 +1,0 @@
-/home/brunopc/Reserva-de-Cruzeiros/payment/src/main/java/com/cruise/payment/PaymentApplication.java
-/home/brunopc/Reserva-de-Cruzeiros/payment/src/main/java/com/cruise/payment/PaymentController.java
-/home/brunopc/Reserva-de-Cruzeiros/payment/src/main/java/com/cruise/payment/PaymentPublisher.java
-/home/brunopc/Reserva-de-Cruzeiros/payment/src/main/java/com/cruise/payment/config/RabbitConfig.java
-/home/brunopc/Reserva-de-Cruzeiros/payment/src/main/java/com/cruise/payment/dto/PaymentLinkDto.java
-/home/brunopc/Reserva-de-Cruzeiros/payment/src/main/java/com/cruise/payment/dto/PaymentNotificationDto.java
-/home/brunopc/Reserva-de-Cruzeiros/payment/src/main/java/com/cruise/payment/dto/ReservationDto.java

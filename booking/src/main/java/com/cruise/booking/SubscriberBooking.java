@@ -8,8 +8,8 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
@@ -18,24 +18,43 @@ import org.springframework.amqp.core.Message;
 
 import com.cruise.booking.config.RabbitConfig;
 
+import jakarta.annotation.PreDestroy;
+
 @Component
 public class SubscriberBooking {
 
-    private final List<SseEmitter> sseEmitters = new CopyOnWriteArrayList<>();
+    private final Map<String, SseEmitter> sseEmitters = new ConcurrentHashMap<>();
+
+    private String getClientNameFromMessage(String message) {
+        if (message == null || message.isEmpty()) {
+            return null;
+        }
+        String[] parts = message.split(",");
+        if (parts.length > 1) {
+            return parts[1];
+        }
+        return null;
+    }
 
     @RabbitListener(queues = RabbitConfig.APPROVED_PAYMENT_QUEUE)
     public void listenToApprovedPayment(Message amqpMessage) {
+        String message = new String(amqpMessage.getBody());
+        String clientName = getClientNameFromMessage(message);
+
         try {
-            String message = new String(amqpMessage.getBody());
             String signature = (String) amqpMessage.getMessageProperties().getHeaders().get("signature");
 
             if (verifyMessage(message, signature)) {
                 System.out.println("\nValid approved payment received:\n" + message);
                 informUser(message, true);
-                sendSseEvent("payment_approved", "Your payment has been approved! Details: " + message);
+                if (clientName != null) {
+                    sendSseEventToClient(clientName, "payment_approved", "Your payment has been approved! Details: " + message);
+                }
             } else {
                 System.out.println("\nInvalid signature detected. Message discarded.");
-                sendSseEvent("payment_error", "Invalid payment signature received. Message discarded.");
+                if (clientName != null) {
+                    sendSseEventToClient(clientName, "payment_error", "Invalid payment signature received. Message discarded.");
+                }
             }
         } catch (Exception e) {
             System.err.println("Error while processing approved payment: " + e.getMessage());
@@ -45,17 +64,23 @@ public class SubscriberBooking {
 
     @RabbitListener(queues = RabbitConfig.DENIED_PAYMENT_QUEUE)
     public void listenToDeniedPayment(Message amqpMessage) {
+        String message = new String(amqpMessage.getBody());
+        String clientName = getClientNameFromMessage(message);
+
         try {
-            String message = new String(amqpMessage.getBody());
             String signature = (String) amqpMessage.getMessageProperties().getHeaders().get("signature");
 
             if (verifyMessage(message, signature)) {
                 System.out.println("\nValid denied payment received:\n" + message);
                 informUser(message, false);
-                sendSseEvent("payment_denied", "Your payment was denied. Details: " + message);
+                if (clientName != null) {
+                    sendSseEventToClient(clientName, "payment_denied", "Your payment was denied. Details: " + message);
+                }
             } else {
                 System.out.println("\nInvalid signature detected for denied payment. Message discarded.");
-                sendSseEvent("payment_error", "Invalid payment signature received. Message discarded.");
+                if (clientName != null) {
+                    sendSseEventToClient(clientName, "payment_error", "Invalid payment signature received. Message discarded.");
+                }
             }
         } catch (Exception e) {
             System.err.println("Error while processing denied payment: " + e.getMessage());
@@ -67,34 +92,55 @@ public class SubscriberBooking {
     public void listenToTicketGenerated(String message) {
         System.out.println("\nYour ticket has been generated!\nTicket details:\n");
         displayTicketDetails(message);
-        sendSseEvent("ticket_generated", "Your ticket has been generated! Details: " + message);
+        String clientName = getClientNameFromMessage(message);
+        if (clientName != null) {
+            sendSseEventToClient(clientName, "ticket_generated", "Your ticket has been generated! Details: " + message);
+        }
     }
 
     @RabbitListener(queues = RabbitConfig.PROMOTIONS_QUEUE_BOOKING)
     public void listenToPromotions(String promotionMessage) {
         System.out.println("Received promotion: " + promotionMessage);
-        sendSseEvent("promotion", promotionMessage);
+        broadcastSseEvent("promotion", promotionMessage);
     }
 
-    private void sendSseEvent(String eventName, String data) {
-        for (SseEmitter emitter : sseEmitters) {
+    private void broadcastSseEvent(String eventName, String data) {
+        sseEmitters.forEach((clientName, emitter) -> {
             try {
                 emitter.send(SseEmitter.event().name(eventName).data(data));
             } catch (IOException e) {
-                sseEmitters.remove(emitter);
+                removeSseEmitter(clientName);
+            }
+        });
+    }
+
+    private void sendSseEventToClient(String clientName, String eventName, String data) {
+        SseEmitter emitter = sseEmitters.get(clientName);
+        if (emitter != null) {
+            try {
+                emitter.send(SseEmitter.event().name(eventName).data(data));
+            } catch (IOException e) {
+                removeSseEmitter(clientName);
             }
         }
     }
 
-    public void addSseEmitter(SseEmitter emitter) {
-        this.sseEmitters.add(emitter);
-        emitter.onCompletion(() -> this.sseEmitters.remove(emitter));
-        emitter.onTimeout(() -> this.sseEmitters.remove(emitter));
-        emitter.onError(e -> this.sseEmitters.remove(emitter));
+    public void addSseEmitter(String clientName, SseEmitter emitter) {
+        this.sseEmitters.put(clientName, emitter);
+        emitter.onCompletion(() -> this.sseEmitters.remove(clientName));
+        emitter.onTimeout(() -> this.sseEmitters.remove(clientName));
+        emitter.onError(e -> this.sseEmitters.remove(clientName));
     }
 
-    public void removeSseEmitter(SseEmitter emitter) {
-        this.sseEmitters.remove(emitter);
+    public SseEmitter removeSseEmitter(String clientName) {
+        return this.sseEmitters.remove(clientName);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        System.out.println("Shutting down SSE emitters in SubscriberBooking...");
+        sseEmitters.values().forEach(SseEmitter::complete);
+        System.out.println("SSE emitters in SubscriberBooking completed.");
     }
 
     private void displayTicketDetails(String message) {

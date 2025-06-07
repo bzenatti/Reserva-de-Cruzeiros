@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.http.MediaType;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,8 +42,6 @@ public class BookingController {
 
     @Autowired
     private SubscriberBooking subscriberBooking;
-
-    private final Map<String, SseEmitter> sseEmitters = new ConcurrentHashMap<>();
 
     @GetMapping("/")
     public RedirectView home() {
@@ -183,22 +180,14 @@ public class BookingController {
     public SseEmitter subscribeToNotifications(@PathVariable String clientName) {
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE); 
         
-        subscriberBooking.addSseEmitter(emitter);
-        sseEmitters.put(clientName, emitter);
+        subscriberBooking.addSseEmitter(clientName, emitter);
 
-        emitter.onCompletion(() -> {
-            subscriberBooking.removeSseEmitter(emitter);
-            sseEmitters.remove(clientName);
-        });
+        emitter.onCompletion(() -> subscriberBooking.removeSseEmitter(clientName));
         emitter.onTimeout(() -> {
-            subscriberBooking.removeSseEmitter(emitter);
-            sseEmitters.remove(clientName);
+            subscriberBooking.removeSseEmitter(clientName);
             emitter.complete();
         });
-        emitter.onError(e -> {
-            subscriberBooking.removeSseEmitter(emitter);
-            sseEmitters.remove(clientName);
-        });
+        emitter.onError(e -> subscriberBooking.removeSseEmitter(clientName));
         
         try {
             emitter.send(SseEmitter.event().name("connection_established").data("SSE connection established for " + clientName));
@@ -212,9 +201,8 @@ public class BookingController {
 
     @PostMapping("/unsubscribe-notifications/{clientName}")
     public ResponseEntity<?> unsubscribeFromNotifications(@PathVariable String clientName) {
-        SseEmitter emitter = sseEmitters.remove(clientName);
+        SseEmitter emitter = subscriberBooking.removeSseEmitter(clientName);
         if (emitter != null) {
-            subscriberBooking.removeSseEmitter(emitter);
             emitter.complete();
             System.out.println("Client " + clientName + " unsubscribed from SSE notifications.");
             return ResponseEntity.ok("Unsubscribed " + clientName + " successfully.");
@@ -225,8 +213,6 @@ public class BookingController {
     
     @PreDestroy
     public void shutdown() {
-        System.out.println("Shutting down SSE emitters...");
-        sseEmitters.values().forEach(SseEmitter::complete);
-        System.out.println("SSE emitters completed.");
+        System.out.println("Shutting down service...");
     }
 }
