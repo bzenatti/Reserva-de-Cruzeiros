@@ -153,18 +153,7 @@ public class Itinerary {
             .getOrDefault(destination, List.of())
             .stream()
             .filter(i -> i.getEmbarkationPort().equalsIgnoreCase(embarkationPort))
-            .map(i -> new Itinerary(
-                i.getShipName(),
-                i.getEmbarkationPort(),
-                i.getDisembarkationPort(),
-                i.getVisitedPlaces(),
-                i.getNights(),
-                i.getPricePerPerson(),
-                i.getDepartureDayOfMonth(),
-                i.getMaxCabins(),
-                i.getMaxPassengers()
-            ))
-            .collect(Collectors.toList());
+            .collect(Collectors.toList()); 
     }
 
     public static void findAvailableItineraries(String destination,
